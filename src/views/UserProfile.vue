@@ -53,40 +53,66 @@
           >
         </p>
         <span v-else>N/A</span>
-        <span class="material-symbols-outlined edit-icon" @click="edit"
+        <span
+          v-if="userInfo.phoneNumber"
+          class="material-symbols-outlined edit-icon"
+          @click="edit"
           >edit</span
+        >
+        <span
+          class="material-symbols-outlined add-icon"
+          v-if="userInfo.phoneNumber"
+          @click="addNum"
+          >add</span
+        >
+        <span class="material-symbols-outlined add-icon" v-else @click="edit"
+          >add</span
         >
         <span class="material-symbols-outlined success"> check_circle </span>
       </div>
       <div class="hide edit">
-        <div id="phone-input" v-if="userInfo.phoneNumber">
-          <div v-for="number in userInfo.phoneNumber" :key="number">
-            <p>
-              <span>{{ number }}</span>
-              <span class="material-symbols-outlined">delete</span>
-              <span class="material-symbols-outlined">edit</span>
-            </p>
-            <div>
-              <input type="text" :value="number" />
-              <span class="material-symbols-outlined close-icon">close</span>
-              <span
-                class="material-symbols-outlined done-icon"
-                @click="savePhone"
-                >done</span
-              >
-            </div>
+        <div v-if="userInfo.phoneNumber" id="input-phone">
+          <div
+            v-for="number in userInfo.phoneNumber"
+            :key="number"
+            class="phone-input"
+          >
+            <input type="text" :value="number" @focus="numLookup" />
+            <span
+              class="material-symbols-outlined delete-icon"
+              @click="removePhone"
+              >delete</span
+            >
+            <span class="material-symbols-outlined done-icon" @click="updateNum"
+              >done</span
+            >
+            <span class="material-symbols-outlined success">
+              check_circle
+            </span>
           </div>
         </div>
         <div class="input" v-else>
-          <input type="text" ref="newPhone" />
+          <input type="text" ref="newPhone" @input="checkPhone" />
           <span class="material-symbols-outlined close-icon" @click="cancelEdit"
             >close</span
           >
           <span class="material-symbols-outlined done-icon" @click="savePhone"
             >done</span
           >
-          <p v-if="phoneErr">{{ phoneErr }}</p>
         </div>
+        <div class="input add-more">
+          <input type="text" ref="morePhone" @input="checkMorePhone" />
+          <span class="material-symbols-outlined close-icon" @click="cancelEdit"
+            >close</span
+          >
+          <span class="material-symbols-outlined done-icon" @click="savePhone"
+            >done</span
+          >
+        </div>
+        <p v-if="phoneErr" id="phone-err">
+          <span class="material-symbols-outlined"> check_circle </span>
+          <span>{{ phoneErr }}</span>
+        </p>
       </div>
       <p class="title">Delivery address:</p>
       <p class="info">
@@ -100,6 +126,8 @@
 import { auth, firestore } from "@/firebase/config";
 import { ref } from "@vue/reactivity";
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   doc,
   getDocs,
@@ -120,10 +148,12 @@ export default {
     const passwordErr = ref(null);
     const newPhone = ref(null);
     const phoneErr = ref(null);
+    const morePhone = ref(null);
     let userId = "";
     let userData = null;
     let password = "";
     let phoneNum = null;
+    let currentNum = "";
 
     const q = query(
       collection(firestore, "users"),
@@ -138,8 +168,8 @@ export default {
           .split("")
           .map((x) => x.replace(/./, "*"))
           .join("");
-        if (userData.phoneNumber) {
-          phoneNum = [...userData.phoneNumber];
+        if (userData.tel) {
+          phoneNum = [...userData.tel];
         }
         userInfo.value = {
           avatar: userData.avatar ? userData.avatar : "",
@@ -207,7 +237,102 @@ export default {
       }
     }
 
-    function savePhone() {}
+    function checkPhone() {
+      if (
+        /\d{10}/.test(newPhone.value.value) &&
+        newPhone.value.value.length == 10
+      ) {
+        phoneErr.value = null;
+      } else {
+        phoneErr.value = "Phone number must be 10 digit long";
+      }
+    }
+    function checkMorePhone() {
+      if (
+        /\d{10}/.test(morePhone.value.value) &&
+        morePhone.value.value.length == 10
+      ) {
+        phoneErr.value = null;
+      } else {
+        phoneErr.value = "Phone number must be 10 digit long";
+      }
+    }
+
+    function savePhone(e) {
+      if (e.srcElement.style.opacity == "") {
+        phoneErr.value = null;
+        e.srcElement.style.opacity = "0.5";
+        e.srcElement.style.cursor = "not-allowed";
+        e.path[1].childNodes[0].disabled = true;
+        if (userInfo.value.phoneNumber) {
+          updateDoc(doc(firestore, "users", userId), {
+            tel: arrayUnion(morePhone.value.value),
+          }).then(() => {
+            phoneNum.push(morePhone.value.value);
+            userInfo.value.phoneNumber = [...phoneNum];
+            e.path[2].removeAttribute("style");
+            e.path[3].childNodes[8].removeAttribute("style");
+            e.path[3].childNodes[8].lastChild.style.opacity = "1";
+            setTimeout(() => {
+              e.path[3].childNodes[8].lastChild.removeAttribute("style");
+            }, 3000);
+          });
+        } else {
+          updateDoc(doc(firestore, "users", userId), {
+            tel: [newPhone.value.value],
+          }).then(() => {
+            phoneNum.push(newPhone.value.value);
+            userInfo.value.phoneNumber = [...phoneNum];
+            e.path[2].removeAttribute("style");
+            e.path[3].childNodes[8].removeAttribute("style");
+            e.path[3].childNodes[8].lastChild.style.opacity = "1";
+            setTimeout(() => {
+              e.path[3].childNodes[8].lastChild.removeAttribute("style");
+            }, 3000);
+          });
+        }
+      }
+    }
+
+    function addNum(e) {
+      e.path[1].style.display = "none";
+      e.path[1].nextSibling.style.display = "block";
+      e.path[1].nextSibling.firstChild.style.display = "none";
+      e.path[1].nextSibling.lastElementChild.classList.remove("add-more");
+      morePhone.value.value = "";
+      phoneErr.value = null;
+    }
+
+    function removePhone(e) {
+      let removedNum = e.srcElement.previousSibling.value;
+      updateDoc(doc(firestore, "users", userId), {
+        tel: arrayRemove(removedNum),
+      }).then(() => {
+        if (phoneNum.length > 1) {
+          phoneNum = phoneNum.filter((x) => x != removedNum);
+          userInfo.value.phoneNumber = [...phoneNum];
+        } else {
+          phoneNum = phoneNum.filter((x) => x != removedNum);
+          userInfo.value.phoneNumber = "";
+          e.path[3].removeAttribute("style");
+          e.path[3].previousSibling.removeAttribute("style");
+        }
+      });
+    }
+
+    function numLookup(e) {
+      currentNum = e.srcElement.value;
+    }
+
+    function updateNum(e) {
+      let latestNum = e.path[1].firstElementChild.value;
+      if (latestNum.length == 10 && /\d{10}/.test(latestNum)) {
+        if (currentNum != "" && latestNum != currentNum) {
+        }
+      } else {
+        phoneErr.value = "Phone number must be 10 digit long";
+      }
+    }
 
     return {
       userInfo,
@@ -224,6 +349,13 @@ export default {
       newPhone,
       phoneErr,
       savePhone,
+      checkPhone,
+      addNum,
+      morePhone,
+      checkMorePhone,
+      removePhone,
+      numLookup,
+      updateNum,
     };
   },
 };
@@ -273,6 +405,8 @@ export default {
 }
 .edit-icon,
 .done-icon,
+.add-icon,
+.delete-icon,
 .close-icon {
   font-size: 1.8rem;
   cursor: pointer;
@@ -281,6 +415,8 @@ export default {
 }
 .edit-icon:hover,
 .done-icon:hover,
+.add-icon:hover,
+.delete-icon:hover,
 .close-icon:hover {
   border: 2px solid hsl(265, 79%, 40%);
   border-radius: 0.5rem;
@@ -339,12 +475,28 @@ input:focus {
   border-radius: 0.5rem;
   background-color: white;
 }
-#phone-input {
+#input-phone {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
+.phone-input {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 .error {
   color: red;
+}
+#phone-err {
+  font-size: 1rem;
+  margin-top: 1rem;
+  color: red;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.add-more {
+  display: none;
 }
 </style>
