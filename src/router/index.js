@@ -1,25 +1,87 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import { createRouter, createWebHistory } from "vue-router";
+import Home from "../views/Home.vue";
+import AboutUs from "../views/AboutUs.vue";
+import Products from "../views/Products.vue";
+import ProductDetail from "../views/ProductDetail.vue";
+import Cart from "../views/Cart.vue";
+import Login from "../views/Login.vue";
+import Signup from "../views/Signup.vue";
+import Checkout from "../views/Checkout.vue";
+import UserProfile from "../views/UserProfile.vue";
+import Brand from "../views/Brand.vue";
+import ResetPassword from "../views/ResetPassword.vue";
+import Page404 from "../views/404.vue";
 
 const routes = [
   {
-    path: '/',
-    name: 'home',
-    component: HomeView
+    path: "/",
+    name: "home",
+    component: Home,
   },
   {
-    path: '/about',
-    name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
-  }
-]
+    path: "/about",
+    name: "about",
+    component: AboutUs,
+  },
+  {
+    path: "/:brand",
+    name: "brand",
+    component: Brand,
+    props: true,
+  },
+  {
+    path: "/:brand/:subbrand",
+    name: "products",
+    component: Products,
+    props: true,
+  },
+  {
+    path: "/:brand/:subbrand/:name",
+    name: "detail",
+    component: ProductDetail,
+    props: true,
+  },
+  {
+    path: "/cart",
+    name: "cart",
+    component: Cart,
+  },
+  {
+    path: "/login",
+    name: "login",
+    component: Login,
+  },
+  {
+    path: "/signup",
+    name: "signup",
+    component: Signup,
+  },
+  {
+    path: "/checkout",
+    name: "checkout",
+    component: Checkout,
+  },
+  {
+    path: "/user/:nickname",
+    name: "profile",
+    component: UserProfile,
+    props: true,
+  },
+  {
+    path: "/user/reset-password",
+    name: "reset",
+    component: ResetPassword,
+  },
+  {
+    path: "/:catchAll(.*)",
+    name: "404",
+    component: Page404,
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
-  routes
-})
+  routes,
+});
 
-export default router
+export default router;
