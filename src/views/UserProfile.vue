@@ -85,8 +85,8 @@
           <span class="material-symbols-outlined done-icon" @click="savePhone"
             >done</span
           >
+          <p v-if="phoneErr">{{ phoneErr }}</p>
         </div>
-        <p v-if="phoneErr">{{ phoneErr }}</p>
       </div>
       <p class="title">Delivery address:</p>
       <p class="info">
