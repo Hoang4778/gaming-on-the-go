@@ -56,7 +56,7 @@
         <span
           v-if="userInfo.phoneNumber"
           class="material-symbols-outlined edit-icon"
-          @click="edit"
+          @click="editMoreNum"
           >edit</span
         >
         <span
@@ -77,7 +77,12 @@
             :key="number"
             class="phone-input"
           >
-            <input type="text" :value="number" @focus="numLookup" />
+            <input
+              type="text"
+              :value="number"
+              @focus="numLookup"
+              @input="checNewkNum"
+            />
             <span
               class="material-symbols-outlined delete-icon"
               @click="removePhone"
@@ -100,6 +105,11 @@
             >done</span
           >
         </div>
+        <span
+          class="material-symbols-outlined close-icon special"
+          @click="cancelMoreEdit"
+          >close</span
+        >
         <div class="input add-more">
           <input type="text" ref="morePhone" @input="checkMorePhone" />
           <span class="material-symbols-outlined close-icon" @click="cancelEdit"
@@ -247,6 +257,7 @@ export default {
         phoneErr.value = "Phone number must be 10 digit long";
       }
     }
+
     function checkMorePhone() {
       if (
         /\d{10}/.test(morePhone.value.value) &&
@@ -256,6 +267,18 @@ export default {
       } else {
         phoneErr.value = "Phone number must be 10 digit long";
       }
+    }
+
+    function editMoreNum(e) {
+      e.path[1].style.display = "none";
+      e.path[1].nextSibling.lastElementChild.classList.add("add-more");
+      e.path[1].nextSibling.firstElementChild.removeAttribute("style");
+      e.path[1].nextSibling.style.display = "block";
+    }
+
+    function cancelMoreEdit(e) {
+      e.path[1].removeAttribute("style");
+      e.path[1].previousSibling.removeAttribute("style");
     }
 
     function savePhone(e) {
@@ -270,6 +293,8 @@ export default {
           }).then(() => {
             phoneNum.push(morePhone.value.value);
             userInfo.value.phoneNumber = [...phoneNum];
+            e.path[1].childNodes[0].disabled = false;
+            e.srcElement.removeAttribute("style");
             e.path[2].removeAttribute("style");
             e.path[3].childNodes[8].removeAttribute("style");
             e.path[3].childNodes[8].lastChild.style.opacity = "1";
@@ -283,6 +308,8 @@ export default {
           }).then(() => {
             phoneNum.push(newPhone.value.value);
             userInfo.value.phoneNumber = [...phoneNum];
+            e.path[1].childNodes[0].disabled = false;
+            e.srcElement.removeAttribute("style");
             e.path[2].removeAttribute("style");
             e.path[3].childNodes[8].removeAttribute("style");
             e.path[3].childNodes[8].lastChild.style.opacity = "1";
@@ -324,13 +351,36 @@ export default {
       currentNum = e.srcElement.value;
     }
 
-    function updateNum(e) {
-      let latestNum = e.path[1].firstElementChild.value;
-      if (latestNum.length == 10 && /\d{10}/.test(latestNum)) {
-        if (currentNum != "" && latestNum != currentNum) {
-        }
+    function checNewkNum(e) {
+      let num = e.srcElement.value;
+      if (num.length == 10 && /\d{10}/.test(num)) {
+        e.srcElement.removeAttribute("style");
       } else {
-        phoneErr.value = "Phone number must be 10 digit long";
+        e.srcElement.style.border = "2px solid red";
+      }
+    }
+
+    function updateNum(e) {
+      if (e.path[1].firstElementChild.disabled == false) {
+        let latestNum = e.path[1].firstElementChild.value;
+        e.path[1].firstElementChild.disabled = true;
+        e.srcElement.style.opacity = "0.5";
+        e.srcElement.style.cursor = "not-allowed";
+        if (currentNum != "" && latestNum != currentNum) {
+          updateDoc(doc(firestore, "users", userId), {
+            tel: arrayRemove(currentNum),
+          }).then(() => {
+            updateDoc(doc(firestore, "users", userId), {
+              tel: arrayUnion(latestNum),
+            }).then(() => {
+              phoneNum = phoneNum.filter((x) => x != currentNum);
+              phoneNum.unshift(latestNum);
+              userInfo.value.phoneNumber = [...phoneNum];
+              e.path[1].firstElementChild.disabled = false;
+              e.srcElement.removeAttribute("style");
+            });
+          });
+        }
       }
     }
 
@@ -355,7 +405,10 @@ export default {
       checkMorePhone,
       removePhone,
       numLookup,
+      checNewkNum,
       updateNum,
+      editMoreNum,
+      cancelMoreEdit,
     };
   },
 };
@@ -440,6 +493,7 @@ input:focus {
   flex-direction: column;
   align-items: flex-start;
   gap: 2rem;
+  position: relative;
 }
 .hide {
   display: none;
@@ -498,5 +552,10 @@ input:focus {
 }
 .add-more {
   display: none;
+}
+.special {
+  position: absolute;
+  right: 0.5rem;
+  top: 40%;
 }
 </style>
