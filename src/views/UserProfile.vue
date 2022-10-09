@@ -1,8 +1,31 @@
 <template>
   <div id="container" v-if="userInfo">
     <div id="avatar">
-      <img :src="userInfo.avatar" :alt="nickname" @error="altImg" />
-      <span class="material-symbols-outlined avatar-edit edit-icon">edit</span>
+      <div id="img-container">
+        <img :src="userInfo.avatar" :alt="nickname" @error="altImg" />
+      </div>
+      <div id="img-edit" v-if="imgEdit">
+        <input
+          type="url"
+          ref="urlInput"
+          placeholder="Enter image URL"
+          pattern="https://.*"
+        />
+        <span class="material-symbols-outlined close-icon" @click="closeEdit"
+          >close</span
+        >
+        <span class="material-symbols-outlined done-icon" @click="updateImg"
+          >done</span
+        >
+      </div>
+      <span
+        class="material-symbols-outlined avatar-edit edit-icon"
+        @click="showImgEdit"
+        >edit</span
+      >
+      <span class="material-symbols-outlined edit-icon logout" @click="logout"
+        >logout</span
+      >
     </div>
     <div id="info">
       <p class="title">Username:</p>
@@ -70,7 +93,7 @@
         >
         <span class="material-symbols-outlined success"> check_circle </span>
       </div>
-      <div class="hide edit">
+      <div class="hide info">
         <div v-if="userInfo.phoneNumber" id="input-phone">
           <div
             v-for="number in userInfo.phoneNumber"
@@ -78,7 +101,7 @@
             class="phone-input"
           >
             <input
-              type="text"
+              type="number"
               :value="number"
               @focus="numLookup"
               @input="checNewkNum"
@@ -97,7 +120,7 @@
           </div>
         </div>
         <div class="input" v-else>
-          <input type="text" ref="newPhone" @input="checkPhone" />
+          <input type="number" ref="newPhone" @input="checkPhone" />
           <span class="material-symbols-outlined close-icon" @click="cancelEdit"
             >close</span
           >
@@ -108,10 +131,11 @@
         <span
           class="material-symbols-outlined close-icon special"
           @click="cancelMoreEdit"
+          v-if="userInfo.phoneNumber"
           >close</span
         >
         <div class="input add-more">
-          <input type="text" ref="morePhone" @input="checkMorePhone" />
+          <input type="number" ref="morePhone" @input="checkMorePhone" />
           <span class="material-symbols-outlined close-icon" @click="cancelEdit"
             >close</span
           >
@@ -124,10 +148,10 @@
           <span>{{ phoneErr }}</span>
         </p>
       </div>
-      <p class="title">Delivery address:</p>
+      <!-- <p class="title">Delivery address:</p>
       <p class="info">
         <span>N/A</span><span class="material-symbols-outlined">edit</span>
-      </p>
+      </p> -->
     </div>
   </div>
 </template>
@@ -145,7 +169,9 @@ import {
   updateDoc,
   where,
 } from "@firebase/firestore";
-import { updatePassword } from "@firebase/auth";
+import { signOut, updatePassword } from "@firebase/auth";
+import { useStore } from "vuex";
+import { useRouter } from "vue-router";
 export default {
   props: ["nickname"],
   setup(props) {
@@ -159,11 +185,20 @@ export default {
     const newPhone = ref(null);
     const phoneErr = ref(null);
     const morePhone = ref(null);
+    const imgEdit = ref(false);
+    const urlInput = ref(null);
+    const fileUpload = ref(null);
+    const store = useStore();
+    const router = useRouter();
     let userId = "";
     let userData = null;
     let password = "";
     let phoneNum = null;
     let currentNum = "";
+
+    if (!store.state.nickname) {
+      router.push("/");
+    }
 
     const q = query(
       collection(firestore, "users"),
@@ -271,9 +306,10 @@ export default {
 
     function editMoreNum(e) {
       e.path[1].style.display = "none";
+      e.path[1].nextSibling.style.display = "flex";
+      e.path[1].nextSibling.childNodes[1].style.display = "block";
       e.path[1].nextSibling.lastElementChild.classList.add("add-more");
       e.path[1].nextSibling.firstElementChild.removeAttribute("style");
-      e.path[1].nextSibling.style.display = "block";
     }
 
     function cancelMoreEdit(e) {
@@ -324,6 +360,7 @@ export default {
     function addNum(e) {
       e.path[1].style.display = "none";
       e.path[1].nextSibling.style.display = "block";
+      e.path[1].nextSibling.childNodes[1].style.display = "none";
       e.path[1].nextSibling.firstChild.style.display = "none";
       e.path[1].nextSibling.lastElementChild.classList.remove("add-more");
       morePhone.value.value = "";
@@ -384,6 +421,33 @@ export default {
       }
     }
 
+    function showImgEdit(e) {
+      e.srcElement.style.display = "none";
+      imgEdit.value = true;
+    }
+
+    function closeEdit(e) {
+      imgEdit.value = false;
+      e.path[1].nextSibling.removeAttribute("style");
+    }
+
+    function updateImg(e) {
+      updateDoc(doc(firestore, "users", userId), {
+        avatar: urlInput.value.value,
+      }).then(() => {
+        userInfo.value.avatar = urlInput.value.value;
+        imgEdit.value = false;
+        e.path[1].nextSibling.removeAttribute("style");
+      });
+    }
+
+    function logout() {
+      signOut(auth);
+      store.commit("updateUsername", "");
+      localStorage.removeItem("username");
+      router.push("/");
+    }
+
     return {
       userInfo,
       altImg,
@@ -409,6 +473,13 @@ export default {
       updateNum,
       editMoreNum,
       cancelMoreEdit,
+      imgEdit,
+      showImgEdit,
+      closeEdit,
+      updateImg,
+      fileUpload,
+      urlInput,
+      logout,
     };
   },
 };
@@ -423,21 +494,50 @@ export default {
   gap: 2rem;
 }
 #avatar {
-  margin: 0 auto;
-  width: 10rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
   position: relative;
 }
-#avatar > img {
+#img-container {
+  width: 10rem;
+  height: 10rem;
+}
+#img-container > img {
   width: 100%;
-  height: auto;
+  height: 100%;
   object-fit: cover;
   border-radius: 50%;
 }
 .avatar-edit {
   position: absolute;
-  right: -2rem;
+  left: 60%;
   bottom: 0;
   cursor: pointer;
+}
+.logout {
+  position: absolute;
+  left: 70%;
+  top: 50%;
+  cursor: pointer;
+}
+#img-edit {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+input[type="url"] {
+  font-size: 1.1rem;
+  padding: 0.5rem;
+  border: none;
+}
+input[type="url"]:focus {
+  outline: none;
+}
+input[type="file"] {
+  font-size: 1.1rem;
 }
 #info {
   max-width: 80%;
@@ -453,7 +553,8 @@ export default {
 }
 .info {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   align-items: center;
 }
 .edit-icon,
@@ -476,24 +577,34 @@ export default {
 }
 .input {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   align-items: center;
 }
-input {
+input[type="password"],
+input[type="number"] {
   font-size: 1.3rem;
   width: 10rem;
   border: none;
   padding: 0.5rem;
 }
-input:focus {
+input[type="password"]:focus,
+input[type="number"]:focus {
   outline: none;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 .edit {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2rem;
-  position: relative;
 }
 .hide {
   display: none;
@@ -537,7 +648,8 @@ input:focus {
 .phone-input {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 .error {
   color: red;
@@ -553,9 +665,18 @@ input:focus {
 .add-more {
   display: none;
 }
-.special {
-  position: absolute;
-  right: 0.5rem;
-  top: 40%;
+@media (max-width: 640px) {
+  .avatar-edit {
+    left: 70%;
+  }
+  .logout {
+    left: 80%;
+  }
+  #info {
+    font-size: 1rem;
+  }
+  /* .special {
+    right: 0;
+  } */
 }
 </style>
