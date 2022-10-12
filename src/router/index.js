@@ -10,7 +10,7 @@ import Checkout from "../views/Checkout.vue";
 import UserProfile from "../views/UserProfile.vue";
 import Brand from "../views/Brand.vue";
 import ResetPassword from "../views/ResetPassword.vue";
-import Page404 from "../views/404.vue";
+import PageNotFound from "../views/NotFound.vue";
 
 const routes = [
   {
@@ -73,9 +73,8 @@ const routes = [
     component: ResetPassword,
   },
   {
-    path: "/:catchAll(.*)",
-    name: "404",
-    component: Page404,
+    path: "/:pathMatch(.*)*",
+    component: PageNotFound,
   },
 ];
 

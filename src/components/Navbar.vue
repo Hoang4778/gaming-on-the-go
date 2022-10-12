@@ -1,15 +1,11 @@
 <template>
-  <nav v-if="display">
+  <nav>
     <img alt="page-logo" src="../assets/Gaming-on-the-go-logo.png" />
-    <ul class="nav-links" v-if="username" :class="{ menu: isDropped }">
+    <ul class="nav-links">
       <li><router-link to="/">Home</router-link></li>
-      <li class="brands" @mouseenter="displayBrands">
-        Brands
-        <ul
-          class="brand-list"
-          :class="{ 'show-brand': brandDisplay }"
-          @mouseleave="hideBrands"
-        >
+      <li id="brand">
+        <span>Brands</span>
+        <ul id="brand-list">
           <li v-for="brand in brandList" :key="brand">
             <router-link :to="{ name: 'brand', params: { brand: brand } }">{{
               brand
@@ -18,50 +14,82 @@
         </ul>
       </li>
       <li><router-link to="/about">About us</router-link></li>
-      <li id="desktop-user">
-        <router-link :to="{ name: 'profile', params: { nickname: username } }"
-          ><i class="fa-solid fa-user"></i> {{ username }}
+      <li v-if="username" id="login">
+        <ul>
+          <li>
+            <router-link
+              :to="{ name: 'profile', params: { nickname: username } }"
+              ><i class="fa-solid fa-user"></i> {{ username }}
+            </router-link>
+          </li>
+          <li>
+            <button @click="handleLogout" class="logout">Logout</button>
+          </li>
+        </ul>
+      </li>
+      <li v-else id="login">
+        <ul>
+          <li>
+            <router-link to="/login">Login</router-link>
+          </li>
+          <li>
+            <router-link to="/signup">Signup</router-link>
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <ul id="hamburger">
+      <li>
+        <router-link class="cart" to="/cart"
+          ><i class="fa-solid fa-cart-shopping"></i>
+          <span class="item-num">{{ itemNum }}</span>
         </router-link>
       </li>
-      <li><button id="logout" @click="handleLogout">Log out</button></li>
-    </ul>
-    <ul class="nav-links" v-else :class="{ menu: isDropped }">
-      <li><router-link to="/">Home</router-link></li>
-      <li class="brands" @mouseenter="displayBrands">
-        Brands
-        <ul
-          class="brand-list"
-          :class="{ 'show-brand': brandDisplay }"
-          @mouseleave="hideBrands"
-        >
-          <li v-for="brand in brandList" :key="brand">
-            <router-link :to="{ name: 'brand', params: { brand: brand } }">{{
-              brand
-            }}</router-link>
-          </li>
-        </ul>
+      <li>
+        <i class="fa-solid fa-bars" @click="dropdownMenu"></i>
       </li>
-      <li><router-link to="/about">About us</router-link></li>
-      <li><router-link to="/login">Log in</router-link></li>
-      <li><router-link to="/signup">Sign up</router-link></li>
     </ul>
-    <p id="mobile-user" v-if="username">
-      <router-link :to="{ name: 'profile', params: { nickname: username } }"
-        ><i class="fa-solid fa-user"></i> {{ username }}
-      </router-link>
-    </p>
-    <span
-      class="material-symbols-outlined logout"
-      @click="handleLogout"
-      v-if="username"
-      >logout</span
-    >
-    <router-link class="cart" to="/cart"
-      ><i class="fa-solid fa-cart-shopping"></i>
-      <span class="item-num">{{ itemNum }}</span>
-    </router-link>
-    <i class="fa-solid fa-bars" @click="dropdownMenu"></i>
   </nav>
+  <ul
+    class="mobile-links"
+    :class="{ dropdown: isDropped }"
+    @click="isDropped = !isDropped"
+  >
+    <li><router-link to="/">Home</router-link></li>
+    <li id="mobile-brand">
+      <span>Brands</span>
+      <ul id="mobile-brand-list">
+        <li v-for="brand in brandList" :key="brand">
+          <router-link :to="{ name: 'brand', params: { brand: brand } }">{{
+            brand
+          }}</router-link>
+        </li>
+      </ul>
+    </li>
+    <li><router-link to="/about">About us</router-link></li>
+    <li v-if="username" id="mobile-login">
+      <ul>
+        <li>
+          <router-link :to="{ name: 'profile', params: { nickname: username } }"
+            ><i class="fa-solid fa-user"></i> {{ username }}
+          </router-link>
+        </li>
+        <li>
+          <button @click="handleLogout" class="logout">Logout</button>
+        </li>
+      </ul>
+    </li>
+    <li v-else id="mobile-login">
+      <ul>
+        <li>
+          <router-link to="/login">Login</router-link>
+        </li>
+        <li>
+          <router-link to="/signup">Signup</router-link>
+        </li>
+      </ul>
+    </li>
+  </ul>
 </template>
 
 <script>
@@ -73,13 +101,11 @@ import { signOut } from "@firebase/auth";
 
 export default {
   setup() {
-    const display = ref(true);
     const store = useStore();
     const username = computed(() =>
       store.state.nickname ? store.state.nickname : ""
     );
     const brandList = ref(null);
-    const brandDisplay = ref(false);
     const isDropped = ref(false);
     const itemNum = computed(() =>
       store.state.cartSum ? store.state.cartSum : 0
@@ -92,14 +118,6 @@ export default {
       brandList.value = item;
     });
 
-    function displayBrands() {
-      brandDisplay.value = true;
-    }
-
-    function hideBrands() {
-      brandDisplay.value = false;
-    }
-
     function handleLogout() {
       window.localStorage.removeItem("username");
       signOut(auth);
@@ -111,13 +129,9 @@ export default {
     }
 
     return {
-      display,
       handleLogout,
       username,
       brandList,
-      displayBrands,
-      hideBrands,
-      brandDisplay,
       dropdownMenu,
       isDropped,
       itemNum,
@@ -127,143 +141,173 @@ export default {
 </script>
 
 <style scoped>
+.mobile-links {
+  display: none;
+}
 nav {
-  width: 100%;
-  height: 5rem;
-  display: flex;
-  justify-content: space-around;
   background-color: hsl(265, 79%, 40%);
-  align-items: center;
+  font-size: 1.4rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  height: 6rem;
+  padding: 0 5%;
 }
 nav > img {
-  height: 5rem;
+  margin-right: auto;
 }
-.fa-bars {
+a {
+  text-decoration: none;
   color: white;
-  font-size: 2rem;
-  display: none;
+}
+li {
+  list-style: none;
 }
 .nav-links {
   display: flex;
   align-items: center;
   gap: 1rem;
-  font-size: 1.2rem;
 }
-.nav-links > li {
-  list-style: none;
+.nav-links > li > a {
+  padding: 2rem 0;
 }
-.nav-links li a {
-  text-decoration: none;
-  color: white;
+.nav-links > li > a:hover {
+  border-bottom: 3px solid white;
 }
-.brands {
+#brand {
   color: white;
   position: relative;
 }
-.brands:hover {
+#brand > span {
+  padding: 2rem 0;
   cursor: pointer;
 }
-.brand-list {
-  position: absolute;
-  top: 3rem;
-  display: none;
-  z-index: 2;
-}
-.brand-list > li {
-  list-style: none;
+#brand-list {
   background-color: hsl(265, 79%, 40%);
-  padding: 0 1rem 0.5rem;
+  position: absolute;
+  top: 1.4rem;
+  left: -0.5rem;
+  z-index: 2;
+  padding-top: 2.4rem;
+  transform-origin: 0 0;
+  transform: rotateX(90deg);
+  transition: all 0.5s ease;
 }
-.brand-list li a {
-  text-decoration: none;
+#brand:hover #brand-list {
+  transform: rotateX(0deg);
+}
+#brand-list > li {
+  padding: 0.5rem 1rem;
+}
+#brand-list > li:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+  color: gray;
+}
+#login > ul {
+  height: 6rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+#login > ul > li > a {
+  padding: 2rem 0;
+}
+#login > ul > li > a:hover {
+  border-bottom: 3px solid white;
+}
+#hamburger {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
   color: white;
 }
-.brand-list li:hover {
-  border-bottom: 2px solid white;
-}
-.fa-user {
-  color: white;
-}
-#mobile-user {
+.fa-bars {
+  font-size: 2rem;
+  cursor: pointer;
   display: none;
-  font-size: 1.2rem;
-}
-#mobile-user > a {
-  text-decoration: none;
-  color: white;
 }
 .cart {
   position: relative;
-  color: white;
 }
 .item-num {
   width: 1.5rem;
-  height: 1.5rem;
-  text-align: center;
-  border: 2px solid black;
   background-color: black;
   border-radius: 50%;
+  text-align: center;
   position: absolute;
   top: -1rem;
-  left: 0.5rem;
+  left: 1rem;
 }
-.show-brand {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-#logout {
-  font-size: 1.2rem;
+.logout {
   color: white;
+  font-size: 1.4rem;
   border: none;
   background-color: hsl(265, 79%, 40%);
   cursor: pointer;
 }
-.logout {
-  display: none;
-  color: white;
-  cursor: pointer;
-}
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
   .fa-bars {
     display: block;
   }
-  .fa-bars:hover {
+  .mobile-links {
+    font-size: 1.4rem;
+    display: block;
+    position: absolute;
+    top: 6rem;
+    z-index: 1;
+    width: 100%;
+    background-color: hsl(265, 79%, 40%);
+    transform-origin: 0 0;
+    transform: rotateX(90deg);
+    transition: all 0.5s ease;
+  }
+  .mobile-links > li {
+    padding: 0.5rem 0 0.5rem 0.5rem;
+  }
+  .mobile-links > li > a:hover {
+    border-bottom: 3px solid white;
+  }
+  #mobile-brand span {
+    color: white;
     cursor: pointer;
+  }
+  #mobile-brand span:hover {
+    border-bottom: 3px solid white;
+  }
+  #mobile-brand-list {
+    height: 100%;
+    background-color: hsl(265, 79%, 40%);
+    position: absolute;
+    left: 8rem;
+    top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    transform-origin: 0 0;
+    transform: rotateY(90deg);
+    transition: all 0.5s ease;
+  }
+  #mobile-brand:hover #mobile-brand-list {
+    transform: rotateY(0deg);
+  }
+  #mobile-brand-list > li > a:hover {
+    border-bottom: 3px solid white;
+  }
+  #mobile-login > ul > li {
+    padding: 0 0.5rem 1rem 0;
+  }
+  #mobile-login > ul > li > a:hover {
+    border-bottom: 3px solid white;
+  }
+  .dropdown {
+    transform: rotateX(0deg);
   }
   nav {
     position: relative;
     z-index: 2;
-  }
-  .nav-links {
-    width: 100%;
-    padding: 2rem 0 0 1rem;
-    position: absolute;
-    top: -15rem;
-    left: 0;
-    background-color: hsl(265, 79%, 40%);
-    flex-direction: column;
-    align-items: flex-start;
-    z-index: -1;
-    transition: all 0.5s ease-in-out;
-  }
-  .brand-list {
-    top: -3.2rem;
-    left: 5rem;
-  }
-  .menu {
-    transform: translateY(20rem);
-  }
-  #desktop-user {
-    display: none;
-  }
-  #mobile-user {
-    display: block;
-  }
-  #logout {
-    display: none;
-  }
-  .logout {
-    display: block;
   }
 }
 </style>

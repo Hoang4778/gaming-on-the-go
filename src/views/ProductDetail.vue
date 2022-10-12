@@ -2,7 +2,9 @@
   <div id="container" v-if="product">
     <div id="showcase">
       <div id="slide">
-        <img :src="currentImg" :alt="name" />
+        <div id="img-container">
+          <img :src="currentImg" :alt="name" />
+        </div>
         <div id="images">
           <div id="slider" ref="slider">
             <img
@@ -206,6 +208,7 @@ export default {
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 2rem;
 }
 #slide {
   display: flex;
@@ -213,9 +216,14 @@ export default {
   align-items: center;
   gap: 2rem;
 }
-#slide > img {
-  width: 30vw;
-  height: 27vw;
+#img-container {
+  width: 20rem;
+  height: 20rem;
+}
+#img-container > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 #images {
   position: relative;
@@ -263,6 +271,11 @@ export default {
 }
 #price > button:hover {
   cursor: pointer;
+}
+#price > button:active {
+  background-color: white;
+  color: hsl(265, 79%, 40%);
+  border: 2px solid hsl(265, 79%, 40%);
 }
 #discount {
   color: gray;

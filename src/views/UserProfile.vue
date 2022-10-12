@@ -675,8 +675,5 @@ input[type="number"] {
   #info {
     font-size: 1rem;
   }
-  /* .special {
-    right: 0;
-  } */
 }
 </style>
